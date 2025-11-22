@@ -11,13 +11,9 @@ import {
   Chip,
 } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { usePlant, usePlants } from '../hooks/usePlants';
-
-
-type RootStackParamList = {
-  Home: undefined;
-  PlantDetails: { plantId: number };
-};
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { usePlant } from '../hooks/usePlants';
+import { usePlants } from '../hooks/usePlants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PlantDetails'>;
 

@@ -18,12 +18,7 @@ import { usePlants } from '../hooks/usePlants';
 import { PlantCard } from '../components/PlantCard';
 import { Planta } from '../types';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-
-type RootStackParamList = {
-  Home: undefined;
-  PlantDetails: { plantId: number };
-  AddPlant: undefined;
-};
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 

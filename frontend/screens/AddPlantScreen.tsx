@@ -45,25 +45,28 @@ export const AddPlantScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      await createPlant({
-        nome: nome.trim(),
-        especie: especie.trim() || undefined,
-        frequencia_rega: frequenciaRega
-          ? parseInt(frequenciaRega, 10)
-          : undefined,
-        data_ultima_rega: dataUltimaRega.toISOString(),
-        observacoes: observacoes.trim() || undefined,
-        id_categoria: idCategoria ? parseInt(idCategoria, 10) : undefined,
-      });
+  await createPlant({
+    nome: nome.trim(),
+    especie: especie.trim() || undefined,
+    frequencia_rega: frequenciaRega
+      ? parseInt(frequenciaRega, 10)
+      : undefined,
+    data_ultima_rega: dataUltimaRega.toISOString(),
+    observacoes: observacoes.trim() || undefined,
+    id_categoria: idCategoria ? parseInt(idCategoria, 10) : undefined,
+  });
 
-      Alert.alert('Sucesso', 'Planta cadastrada com sucesso!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível cadastrar a planta');
-      console.error(error);
-    }
-  };
+  // Exibe o alerta normalmente
+  Alert.alert('Sucesso', 'Planta cadastrada com sucesso!');
+
+  // Retorna imediatamente para a tela anterior
+  navigation.goBack();
+
+} catch (error) {
+  Alert.alert('Erro', 'Não foi possível cadastrar a planta');
+  console.error(error);
+}
+    };
 
   const categoriasOptions = categorias.map((cat) => ({
     value: cat.id_categoria.toString(),

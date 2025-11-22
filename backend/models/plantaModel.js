@@ -31,15 +31,26 @@ return { id: result.lastID };
 
 async function updatePlanta(id, data) {
 const db = await openDb();
+// get existing planta to preserve fields not provided in partial updates
+const existing = await db.get('SELECT * FROM planta WHERE id = ?', id);
+if (!existing) throw new Error('Planta não encontrada');
+
+const nome = data.nome ?? existing.nome;
+const especie = data.especie ?? existing.especie;
+const frequencia_rega = data.frequencia_rega ?? existing.frequencia_rega;
+const data_ultima_rega = data.data_ultima_rega ?? existing.data_ultima_rega;
+const observacoes = data.observacoes ?? existing.observacoes;
+const id_categoria = data.id_categoria ?? existing.id_categoria;
+
 await db.run(
-`UPDATE planta SET nome = ?, especie = ?, frequencia_rega = ?, data_ultima_rega = ?, observacoes = ?, id_categoria = ? WHERE id = ?`,
-data.nome,
-data.especie || null,
-data.frequencia_rega || null,
-data.data_ultima_rega || null,
-data.observacoes || null,
-data.id_categoria || null,
-id
+	`UPDATE planta SET nome = ?, especie = ?, frequencia_rega = ?, data_ultima_rega = ?, observacoes = ?, id_categoria = ? WHERE id = ?`,
+	nome,
+	especie,
+	frequencia_rega,
+	data_ultima_rega,
+	observacoes,
+	id_categoria,
+	id
 );
 }
 

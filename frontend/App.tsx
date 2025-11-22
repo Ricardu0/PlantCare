@@ -1,15 +1,11 @@
 // App.tsx
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'react-native';
-
-// Screens
-import { HomeScreen } from './screens/HomeScreen';
-import { AddPlantScreen } from './screens/AddPlantScreen';
-// import { PlantDetailsScreen } from './src/screens/PlantDetailsScreen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AppNavigator } from './navigation/AppNavigator';
 
 // Theme customization
 const theme = {
@@ -32,32 +28,17 @@ const queryClient = new QueryClient({
   },
 });
 
-// Navigation
-type RootStackParamList = {
-  Home: undefined;
-  AddPlant: undefined;
-  PlantDetails: { plantId: number };
-};
-
-const Stack = createNativeStackNavigator<RootStackParamList>();
-
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <PaperProvider theme={theme}>
-        <StatusBar barStyle="dark-content" backgroundColor="#4caf50" />
-        <NavigationContainer>
-          <Stack.Navigator
-            screenOptions={{
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="AddPlant" component={AddPlantScreen} />
-            {/* <Stack.Screen name="PlantDetails" component={PlantDetailsScreen} /> */}
-          </Stack.Navigator>
-        </NavigationContainer>
-      </PaperProvider>
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <PaperProvider theme={theme}>
+          <StatusBar barStyle="dark-content" backgroundColor="#4caf50" />
+          <NavigationContainer>
+            <AppNavigator />
+          </NavigationContainer>
+        </PaperProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }
