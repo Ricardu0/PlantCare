@@ -1,4 +1,4 @@
-// src/screens/PlantDetailsScreen.tsx
+// frontend/screens/PlantDetailsScreen.tsx
 import React from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import {
@@ -32,6 +32,11 @@ export const PlantDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível registrar a rega');
     }
+  };
+
+  const handleEdit = () => {
+    if (!plant) return;
+    navigation.navigate('EditPlant', { plantId: plant.id });
   };
 
   const handleDelete = () => {
@@ -100,6 +105,7 @@ export const PlantDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       <Appbar.Header>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={plant.nome} />
+        <Appbar.Action icon="pencil" onPress={handleEdit} />
         <Appbar.Action icon="delete" onPress={handleDelete} />
       </Appbar.Header>
 
@@ -157,6 +163,9 @@ export const PlantDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Card.Actions>
             <Button mode="contained" onPress={handleWater} icon="water">
               Regar Agora
+            </Button>
+            <Button mode="outlined" onPress={handleEdit} icon="pencil">
+              Editar
             </Button>
           </Card.Actions>
         </Card>

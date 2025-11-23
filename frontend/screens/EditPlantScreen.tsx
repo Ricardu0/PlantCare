@@ -1,5 +1,5 @@
-// frontend/screens/AddPlantScreen.tsx
-import React, { useState } from 'react';
+// frontend/screens/EditPlantScreen.tsx
+import React, { useState, useEffect } from 'react';
 import {
   View,
   ScrollView,
@@ -13,10 +13,12 @@ import {
   Button,
   SegmentedButtons,
   Text,
+  ActivityIndicator,
 } from 'react-native-paper';
-import { usePlants } from '../hooks/usePlants';
+import { usePlant, usePlants } from '../hooks/usePlants';
 import { useCategories } from '../hooks/useCategories';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 // Importação condicional do DateTimePicker apenas para mobile
 let DateTimePicker: any = null;
@@ -24,15 +26,12 @@ if (Platform.OS !== 'web') {
   DateTimePicker = require('@react-native-community/datetimepicker').default;
 }
 
-type RootStackParamList = {
-  Home: undefined;
-  AddPlant: undefined;
-};
+type Props = NativeStackScreenProps<RootStackParamList, 'EditPlant'>;
 
-type Props = NativeStackScreenProps<RootStackParamList, 'AddPlant'>;
-
-export const AddPlantScreen: React.FC<Props> = ({ navigation }) => {
-  const { createPlant, isCreating } = usePlants();
+export const EditPlantScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { plantId } = route.params;
+  const { data: plant, isLoading: isLoadingPlant } = usePlant(plantId);
+  const { updatePlant, isUpdating } = usePlants();
   const { categorias } = useCategories();
 
   const [nome, setNome] = useState('');
@@ -44,9 +43,30 @@ export const AddPlantScreen: React.FC<Props> = ({ navigation }) => {
   const [idCategoria, setIdCategoria] = useState<string>('');
 
   // Para web: string no formato YYYY-MM-DD
-  const today = new Date();
-  const initialDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const [dateInputValue, setDateInputValue] = useState(initialDateString);
+  const [dateInputValue, setDateInputValue] = useState('');
+
+  // Preencher formulário com dados da planta
+  useEffect(() => {
+    if (plant) {
+      console.log('🌱 Carregando dados da planta:', plant);
+      setNome(plant.nome);
+      setEspecie(plant.especie || '');
+      setFrequenciaRega(plant.frequencia_rega?.toString() || '');
+      setObservacoes(plant.observacoes || '');
+      setIdCategoria(plant.id_categoria?.toString() || '');
+      
+      if (plant.data_ultima_rega) {
+        const date = new Date(plant.data_ultima_rega);
+        setDataUltimaRega(date);
+        
+        // Formatar para input type="date" (YYYY-MM-DD)
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        setDateInputValue(`${year}-${month}-${day}`);
+      }
+    }
+  }, [plant]);
 
   const handleDateChange = (dateString: string) => {
     setDateInputValue(dateString);
@@ -63,22 +83,28 @@ export const AddPlantScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      await createPlant({
-        nome: nome.trim(),
-        especie: especie.trim() || undefined,
-        frequencia_rega: frequenciaRega
-          ? parseInt(frequenciaRega, 10)
-          : undefined,
-        data_ultima_rega: dataUltimaRega.toISOString(),
-        observacoes: observacoes.trim() || undefined,
-        id_categoria: idCategoria ? parseInt(idCategoria, 10) : undefined,
+      console.log('🔄 Iniciando atualização da planta:', plantId);
+      
+      await updatePlant({
+        id: plantId,
+        data: {
+          nome: nome.trim(),
+          especie: especie.trim() || undefined,
+          frequencia_rega: frequenciaRega
+            ? parseInt(frequenciaRega, 10)
+            : undefined,
+          data_ultima_rega: dataUltimaRega.toISOString(),
+          observacoes: observacoes.trim() || undefined,
+          id_categoria: idCategoria ? parseInt(idCategoria, 10) : undefined,
+        },
       });
 
-      Alert.alert('Sucesso', 'Planta cadastrada com sucesso!');
+      console.log('✅ Planta atualizada com sucesso');
+      Alert.alert('Sucesso', 'Planta atualizada com sucesso!');
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível cadastrar a planta');
-      console.error(error);
+      console.error('❌ Erro ao atualizar planta:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar a planta');
     }
   };
 
@@ -87,11 +113,29 @@ export const AddPlantScreen: React.FC<Props> = ({ navigation }) => {
     label: cat.nome,
   }));
 
+  if (isLoadingPlant) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+        <Text style={styles.loadingText}>Carregando planta...</Text>
+      </View>
+    );
+  }
+
+  if (!plant) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text variant="headlineSmall">❌ Planta não encontrada</Text>
+        <Button onPress={() => navigation.goBack()}>Voltar</Button>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Appbar.Header>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Adicionar Planta" />
+        <Appbar.Content title="Editar Planta" />
       </Appbar.Header>
 
       <ScrollView style={styles.content}>
@@ -205,12 +249,12 @@ export const AddPlantScreen: React.FC<Props> = ({ navigation }) => {
         <Button
           mode="contained"
           onPress={handleSubmit}
-          loading={isCreating}
-          disabled={isCreating}
+          loading={isUpdating}
+          disabled={isUpdating}
           style={styles.submitButton}
           icon="check"
         >
-          Cadastrar Planta
+          Salvar Alterações
         </Button>
 
         <View style={styles.spacer} />
@@ -228,6 +272,20 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
   input: {
     marginBottom: 16,
   },
@@ -240,6 +298,7 @@ const styles = StyleSheet.create({
   },
   webDateContainer: {
     marginBottom: 16,
+    maxWidth: 300,
   },
   segmentedButtons: {
     marginBottom: 16,

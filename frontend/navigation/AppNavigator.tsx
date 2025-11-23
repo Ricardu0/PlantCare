@@ -1,15 +1,17 @@
-// src/navigation/AppNavigator.tsx
+// frontend/navigation/AppNavigator.tsx
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/HomeScreen';
 import { AddPlantScreen } from '../screens/AddPlantScreen';
 import { PlantDetailsScreen } from '../screens/PlantDetailsScreen';
+import { EditPlantScreen } from '../screens/EditPlantScreen';
 
 // Definir tipos das rotas e parâmetros
 export type RootStackParamList = {
   Home: undefined;
   AddPlant: undefined;
   PlantDetails: { plantId: number };
+  EditPlant: { plantId: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -18,7 +20,7 @@ export const AppNavigator = () => {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerShown: false, // Desabilita header padrão (usamos Appbar do Paper)
+        headerShown: false,
         animation: 'slide_from_right',
       }}
     >
@@ -36,6 +38,11 @@ export const AppNavigator = () => {
         name="PlantDetails" 
         component={PlantDetailsScreen}
         options={{ title: 'Detalhes da Planta' }}
+      />
+      <Stack.Screen 
+        name="EditPlant" 
+        component={EditPlantScreen}
+        options={{ title: 'Editar Planta' }}
       />
     </Stack.Navigator>
   );
