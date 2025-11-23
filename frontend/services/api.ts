@@ -1,8 +1,26 @@
 // src/services/api.ts
 import axios, { AxiosResponse } from 'axios';
 import { Planta, Categoria, PlantaFormData } from '../types';
+import { Platform } from 'react-native';
 
-const API_BASE_URL = 'http://localhost:3000/api/';
+// Determine base URL depending on runtime environment.
+// - Android emulator (default AVD): use 10.0.2.2 to reach host machine
+// - iOS simulator / web: localhost works
+// - Physical device: set USE_LOCAL_IP env or replace below with your machine IP
+const DEFAULT_LOCALHOST = 'http://localhost:3000/api/';
+const ANDROID_EMULATOR_HOST = 'http://10.0.2.2:3000/api/';
+
+const API_BASE_URL = (() => {
+  // If running on Android emulator, use 10.0.2.2
+  if (Platform.OS === 'android') {
+    console.log('[api] Using Android emulator host ->', ANDROID_EMULATOR_HOST);
+    return ANDROID_EMULATOR_HOST;
+  }
+
+  // Default to localhost for iOS simulator and web
+  console.log('[api] Using localhost host ->', DEFAULT_LOCALHOST);
+  return DEFAULT_LOCALHOST;
+})();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -98,16 +116,20 @@ export const plantasApi = {
     }
   },
 
-  delete: async (id: number): Promise<void> => {
-    console.log(`🌱 Deletando planta ${id}...`);
-    try {
-      await api.delete(`/plantas/${id}`);
-      console.log(`✅ Planta ${id} deletada com sucesso`);
-    } catch (error) {
-      console.error(`❌ Erro ao deletar planta ${id}:`, error);
-      throw error;
-    }
-  },
+  // src/services/api.ts - MODIFIQUE a função delete
+delete: async (id: number): Promise<void> => {
+  console.log(`🌱 [API] Deletando planta ${id}...`);
+  try {
+    const response = await api.delete(`/plantas/${id}`);
+    console.log(`✅ [API] Planta ${id} deletada com sucesso, status:`, response.status);
+    console.log(`✅ [API] Response data:`, response.data);
+  } catch (error: any) {
+    console.error(`❌ [API] Erro ao deletar planta ${id}:`, error);
+    console.error(`❌ [API] Status do erro:`, error.response?.status);
+    console.error(`❌ [API] Mensagem do erro:`, error.response?.data);
+    throw error;
+  }
+},
 
   updateWateringDate: async (id: number, date: string): Promise<void> => {
     console.log(`💧 Atualizando data de rega da planta ${id} para:`, date);

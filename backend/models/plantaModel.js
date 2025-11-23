@@ -57,7 +57,9 @@ await db.run(
 
 async function deletePlanta(id) {
 const db = await openDb();
-await db.run('DELETE FROM planta WHERE id = ?', id);
+const result = await db.run('DELETE FROM planta WHERE id = ?', id);
+// if no rows were deleted, inform caller
+if (result && result.changes === 0) throw new Error('Planta não encontrada');
 }
 
 

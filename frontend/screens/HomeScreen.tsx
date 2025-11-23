@@ -1,4 +1,4 @@
-// src/screens/HomeScreen.tsx
+// src/screens/HomeScreen.tsx - VERSÃO REFACTORED COMPLETA
 import React, { useState } from 'react';
 import {
   View,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
+  Platform,
 } from 'react-native';
 import {
   Appbar,
@@ -14,6 +15,7 @@ import {
   Text,
   ActivityIndicator,
 } from 'react-native-paper';
+
 import { usePlants } from '../hooks/usePlants';
 import { PlantCard } from '../components/PlantCard';
 import { Planta } from '../types';
@@ -30,22 +32,31 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     refetch,
     deletePlant,
     updateWatering,
-    isDeleting,
   } = usePlants();
 
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
+  //-----------------------------------------------
+  // REFRESH
+  //-----------------------------------------------
   const onRefresh = async () => {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
   };
 
+  //-----------------------------------------------
+  // FILTRAGEM
+  //-----------------------------------------------
   const filteredPlantas = plantas.filter((plant) =>
-    plant.nome.toLowerCase().includes(searchQuery.toLowerCase())
+    plant.nome.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  //-----------------------------------------------
+  // LÓGICA DE REGAR
+  //-----------------------------------------------
   const handleWaterPlant = async (plant: Planta) => {
     try {
       const now = new Date().toISOString();
@@ -56,7 +67,40 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  //-----------------------------------------------
+  // ⚠️ LÓGICA DE DELETE — COM WEB + MOBILE CORRIGIDO
+  //-----------------------------------------------
   const handleDeletePlant = (plant: Planta) => {
+    console.log('🛑 handleDeletePlant chamado para:', plant.id, plant.nome);
+
+    // 🔥 WEB → usar window.confirm (Alert.alert é inconsistente no navegador)
+    if (Platform.OS === 'web') {
+      const ok = window.confirm(`Deseja realmente excluir ${plant.nome}?`);
+      if (!ok) return;
+
+      (async () => {
+        console.log('🚀 WEB: iniciando exclusão...');
+        setDeletingId(plant.id);
+
+        try {
+          console.log('📞 Chamando deletePlant()...');
+          await deletePlant(plant.id);
+
+          console.log('✅ deletePlant concluído!');
+          Alert.alert('Sucesso', `${plant.nome} excluída com sucesso`);
+        } catch (err: any) {
+          console.error('❌ Erro ao deletar (web):', err);
+          Alert.alert('Erro', err.message || 'Erro desconhecido');
+        } finally {
+          console.log('🏁 Limpando deletingId');
+          setDeletingId(null);
+        }
+      })();
+
+      return;
+    }
+
+    // 📱 ANDROID / iOS
     Alert.alert(
       'Confirmar Exclusão',
       `Deseja realmente excluir ${plant.nome}?`,
@@ -66,18 +110,32 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           text: 'Excluir',
           style: 'destructive',
           onPress: async () => {
+            console.log('🚀 MOBILE: iniciando exclusão...');
+            setDeletingId(plant.id);
+
             try {
+              console.log('📞 Chamando deletePlant()...');
               await deletePlant(plant.id);
-              Alert.alert('Sucesso', 'Planta excluída');
-            } catch (err) {
-              Alert.alert('Erro', 'Não foi possível excluir a planta');
+
+              console.log('✅ deletePlant concluído!');
+              Alert.alert('Sucesso', `${plant.nome} excluída com sucesso`);
+            } catch (err: any) {
+              console.error('❌ Erro ao deletar (mobile):', err);
+              Alert.alert('Erro', err.message || 'Erro desconhecido');
+            } finally {
+              console.log('🏁 Limpando deletingId');
+              setDeletingId(null);
             }
           },
         },
-      ]
+      ],
+      { cancelable: true },
     );
   };
 
+  //-----------------------------------------------
+  // EMPTY LIST
+  //-----------------------------------------------
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Text variant="headlineSmall" style={styles.emptyTitle}>
@@ -89,6 +147,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
+  //-----------------------------------------------
+  // LOADING / ERROR
+  //-----------------------------------------------
   if (isLoading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
@@ -103,23 +164,37 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.errorContainer}>
         <Text variant="headlineSmall">❌ Erro ao carregar</Text>
         <Text variant="bodyMedium" style={styles.errorText}>
-          Verifique se o backend está rodando
+          {error.message}
         </Text>
       </View>
     );
   }
 
+  //-----------------------------------------------
+  // RENDER
+  //-----------------------------------------------
   return (
     <View style={styles.container}>
+      {/* HEADER */}
       <Appbar.Header>
         <Appbar.Content title="PlantCare" />
+
+        <Appbar.Action icon="refresh" onPress={onRefresh} disabled={refreshing} />
+
+        {/* BOTÃO DE DEBUG */}
         <Appbar.Action
-          icon="refresh"
-          onPress={onRefresh}
-          disabled={refreshing}
+          icon="bug"
+          onPress={async () => {
+            if (plantas.length === 0) return console.log('Nenhuma planta');
+
+            const p = plantas[0];
+            console.log('🐛 DEBUG delete ->', p.id);
+            await deletePlant(p.id);
+          }}
         />
       </Appbar.Header>
 
+      {/* SEARCH */}
       <Searchbar
         placeholder="Buscar plantas..."
         onChangeText={setSearchQuery}
@@ -127,12 +202,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.searchbar}
       />
 
+      {/* LISTA */}
       <FlatList
         data={filteredPlantas}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <PlantCard
             plant={item}
+            isDeleting={deletingId === item.id}
             onPress={() =>
               navigation.navigate('PlantDetails', { plantId: item.id })
             }
@@ -149,6 +226,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       />
 
+      {/* FAB */}
       <FAB
         icon="plus"
         style={styles.fab}
@@ -159,54 +237,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
+//-----------------------------------------------
+// STYLES
+//-----------------------------------------------
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  searchbar: {
-    margin: 16,
-    elevation: 2,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  errorText: {
-    marginTop: 8,
-    textAlign: 'center',
-    color: '#757575',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: 24,
-  },
-  emptyListContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  emptyTitle: {
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#757575',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  searchbar: { margin: 16, elevation: 2 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 16 },
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorText: { marginTop: 8, color: '#757575' },
+  emptyContainer: { alignItems: 'center', padding: 24 },
+  emptyListContent: { flexGrow: 1, justifyContent: 'center' },
+  emptyTitle: { marginBottom: 8 },
+  emptyText: { textAlign: 'center', color: '#757575' },
+  fab: { position: 'absolute', bottom: 16, right: 16 },
 });
