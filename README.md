@@ -14,14 +14,14 @@ Sistema completo para gerenciamento e controle de cuidados com plantas.
 cd backend 
 npm install 
 node server.js
- 
+ ```
 
 Frontend 
-
+```
 cd frontend 
 npm install 
 npm start 
- 
+ ```
 
 📱 Funcionalidades 
 
